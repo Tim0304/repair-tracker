@@ -301,7 +301,9 @@ async function saveRow(rec){
   s(36,rec.transferDate);s(37,rec.transferPerson);
   s(39,rec.factoryName);s(40,rec.factoryNote);s(41,rec.factoryReturnTest);
   s(42,rec.returnSendDate);s(43,rec.returnSender);
-  s(44,rec.videoLink);s(45,rec.backupReturnDate);s(46,rec.backupReceiver);s(48,rec.deviceStatus);
+  const returnLinks=(rec.videoLink||'').split('\n').filter(e=>e.includes('維修機寄回'));
+  const returnUrl=returnLinks.map(e=>e.includes('::')?e.split('::')[1]:e).join('\n');
+  s(44,returnUrl);s(45,rec.backupReturnDate);s(46,rec.backupReceiver);s(48,rec.deviceStatus);
   try{
     const params=new URLSearchParams({
       method:'PUT',
@@ -869,12 +871,14 @@ function cpRawUrl(badgeId,url){
 }
 function renderVideoChips(rec){
   if(!rec.videoLink) return '';
+  const SHOW_TYPES=['備機寄出','維修機寄回'];
   const chips=rec.videoLink.split('\n').filter(Boolean)
-    .filter(entry=>entry.includes('備機寄出'))
+    .filter(entry=>SHOW_TYPES.some(t=>entry.includes(t)))
     .map((entry,i)=>{
       const sep=entry.indexOf('::');
+      const type=sep>-1?entry.slice(0,sep):'影片';
       const url=sep>-1?entry.slice(sep+2):entry;
-      return `<span class="vid-chip" id="vc${i}" onclick="cpVid(${i},'${url.replace(/'/g,"\\'")}')"><span class="vid-chip-dot"></span>備機寄出影片</span>`;
+      return `<span class="vid-chip" id="vc${i}" onclick="cpVid(${i},'${url.replace(/'/g,"\\'")}')"><span class="vid-chip-dot"></span>${type}影片</span>`;
     });
   return chips.length?`<div class="vid-chips">${chips.join('')}</div>`:'';
 }
