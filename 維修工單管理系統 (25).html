@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>維修工單管理系統</title>
+<script src="https://accounts.google.com/gsi/client" async></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:#f0f0ec;color:#111;height:100vh;display:flex;flex-direction:column;font-size:14px}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:#fff;border-bottom:1px solid #e8e8e8;flex-shrink:0}
+.hdr-title{font-size:14px;font-weight:600}
+.hdr-r{display:flex;align-items:center;gap:10px}
+.sync{font-size:12px;color:#999}.sync.ok{color:#2a7d1f}.sync.err{color:#c00}.sync.loading{color:#1a73e8}
+button{cursor:pointer;border:none;border-radius:7px;font-size:13px;padding:6px 14px;font-family:inherit}
+.btn-o{background:transparent;border:1px solid #d0d0d0;color:#333}.btn-o:hover{background:#f5f5f5}
+.btn-p{background:#111;color:#fff}.btn-p:hover{background:#333}
+.btn-s{background:#1a6b2a;color:#fff}.btn-s:hover{background:#155722}
+.btn-c{background:transparent;border:1px solid #ccc;color:#555}
+.layout{display:flex;flex:1;overflow:hidden}
+.sb{width:270px;flex-shrink:0;background:#fff;border-right:1px solid #e8e8e8;display:flex;flex-direction:column}
+.sb-hd{padding:12px;border-bottom:1px solid #f0f0f0}
+.sb-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.sb-lbl{font-size:11px;font-weight:600;color:#888;letter-spacing:.04em}
+.sb-cnt{font-size:11px;background:#f0f0f0;color:#666;padding:2px 8px;border-radius:20px}
+.sb-q{width:100%;padding:7px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;background:#f8f8f8;font-family:inherit}
+.sb-q:focus{outline:none;border-color:#aaa;background:#fff}
+.sb-list{flex:1;overflow-y:auto;padding:6px}
+.rec{padding:10px;border-radius:8px;cursor:pointer;margin-bottom:3px;border:1px solid transparent}
+.rec:hover{background:#f8f8f8}.rec.on{background:#f0f0f0;border-color:#ddd}
+.rec-id{font-size:11px;color:#aaa;margin-bottom:1px}
+.rec-nm{font-size:13px;font-weight:500;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rec-row{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.rec-note{font-size:11px;color:#aaa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.bdg{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.b-done{background:#e8f5e9;color:#2e7d32}.b-proc{background:#e3f2fd;color:#1565c0}
+.b-wait{background:#fff8e1;color:#e65100}.b-wby{background:#ede7f6;color:#512da8}
+.det{flex:1;overflow-y:auto;padding:20px 24px;background:#f0f0ec}
+.det-empty{display:flex;align-items:center;justify-content:center;height:100%;color:#bbb;font-size:13px}
+.det-hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;gap:12px}
+.det-title{font-size:19px;font-weight:600;margin-bottom:3px}
+.det-sub{font-size:12px;color:#999}
+.det-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.det-chip{font-size:12px;background:#f5f5f5;border:1px solid #e8e8e8;color:#555;padding:3px 10px;border-radius:20px}
+.det-acts{display:flex;gap:8px;flex-shrink:0}
+.card{background:#fff;border:1px solid #e8e8e8;border-radius:10px;margin-bottom:12px;overflow:hidden}
+.card-hd{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid #f5f5f5}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.d-b{background:#2196F3}.d-a{background:#FF9800}.d-g{background:#4CAF50}.d-p{background:#7C4DFF}
+.card-lbl{font-size:12px;font-weight:600;color:#666}
+.card-body{padding:0;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card-body.no-sub{padding:14px}
+.sub-cols{display:grid;grid-template-columns:repeat(3,1fr);border-top:0 none}
+.sub-col{padding:14px;border-right:1px solid #f0f0f0}
+.sub-col:last-child{border-right:none}
+.sub-lbl{font-size:10px;font-weight:600;color:#bbb;letter-spacing:.05em;margin-bottom:10px;text-transform:uppercase}
+.sub-fields{display:flex;flex-direction:column;gap:10px}
+.fld{display:flex;flex-direction:column;gap:3px}
+.fld.s2{grid-column:1/-1}
+.fl{font-size:11px;color:#aaa}
+.fv{font-size:13px;color:#111}.fv.nil{color:#ccc}
+.fi{width:100%;padding:6px 9px;border:1px solid #ddd;border-radius:6px;font-size:13px;background:#fafafa;color:#111;font-family:inherit}
+.fi:focus{outline:none;border-color:#888;background:#fff}
+.fi-ta{resize:vertical;min-height:60px}
+.ta-wrap{background:#f0f7ea;border:1px solid #b5d980;border-radius:10px;margin-bottom:12px;overflow:hidden}
+.ta-hd{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;cursor:pointer;user-select:none}
+.ta-hd:hover{background:#e8f5dc}
+.ta-ttl{font-size:12px;font-weight:600;color:#2e6b10;display:flex;align-items:center;gap:6px}
+.ta-arrow{font-size:10px;color:#5a9e30;transition:transform .2s}
+.ta-arrow.open{transform:rotate(90deg)}
+.ta-body{display:none;padding:0 14px 12px}
+.ta-body.open{display:block}
+.ta-pre{font-size:12px;color:#333;white-space:pre;font-family:'Courier New',monospace;background:#fff;border:1px solid #ddd;border-radius:6px;padding:10px 12px;overflow-x:auto;line-height:1.65}
+.cp-btn{font-size:12px;padding:4px 12px;border:1px solid #4caf50;border-radius:6px;background:#fff;color:#2e7d32;cursor:pointer}
+.cp-btn:hover{background:#e8f5e9}.cp-btn.ok{background:#e8f5e9}
+.ta-ex{margin-bottom:10px}
+.chk-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:4px}
+.chk-it{display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer}
+.chk-it input{width:15px;height:15px;cursor:pointer}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:999}
+.cfg-m{background:#fff;border-radius:12px;padding:24px;width:500px;max-width:92vw}
+.m-ttl{font-size:15px;font-weight:600;margin-bottom:6px}
+.steps{background:#f8f8f8;border-radius:8px;padding:14px;margin-bottom:18px;font-size:12px;color:#555;line-height:2.1}
+.steps b{color:#111}
+.steps code{background:#e8e8e8;padding:1px 5px;border-radius:4px;font-size:11px}
+.fg{margin-bottom:14px}
+/* Upload modal */
+.upl-m{background:#fff;border-radius:12px;padding:24px;width:460px;max-width:92vw}
+.upl-ttl{font-size:15px;font-weight:600;margin-bottom:16px}
+.upl-types{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.upl-type{padding:10px 12px;border:1px solid #e0e0e0;border-radius:8px;cursor:pointer;font-size:13px;text-align:center;transition:all .12s;user-select:none}
+.upl-type:hover{border-color:#aaa;background:#f8f8f8}
+.upl-type.sel{border-color:#1a73e8;background:#e8f0fe;color:#1565c0;font-weight:500}
+.upl-folder{margin-bottom:14px}
+.upl-folder label{font-size:12px;color:#888;display:block;margin-bottom:5px}
+.upl-folder input{width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit}
+.upl-folder input:focus{outline:none;border-color:#888}
+.upl-drop{border:2px dashed #ddd;border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:14px}
+.upl-drop:hover,.upl-drop.over{border-color:#1a73e8;background:#f0f5ff}
+.upl-drop-icon{font-size:28px;margin-bottom:8px}
+.upl-drop-txt{font-size:13px;color:#888}
+.upl-drop-txt b{color:#1a73e8}
+.upl-prog{display:none;margin-bottom:14px}
+.upl-prog-bar{height:6px;background:#e0e0e0;border-radius:3px;overflow:hidden;margin-bottom:6px}
+.upl-prog-fill{height:100%;background:#1a73e8;border-radius:3px;width:0%;transition:width .3s}
+.upl-prog-txt{font-size:12px;color:#888;text-align:center}
+.upl-links{margin-bottom:14px}
+.upl-link-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f0f7ea;border:1px solid #c8e6c9;border-radius:8px;margin-bottom:6px;font-size:12px}
+.upl-link-item a{color:#2e7d32;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upl-link-tag{font-size:11px;background:#2e7d32;color:#fff;padding:2px 6px;border-radius:4px;flex-shrink:0}
+/* Video chips in header */
+.vid-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.vid-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:3px 10px 3px 8px;border-radius:20px;background:#e8f0fe;border:1px solid #c5d5f7;color:#1a56c4;cursor:pointer;user-select:none;transition:all .12s}
+.vid-chip:hover{background:#d0e1fc;border-color:#a0bef0}
+.vid-chip:active{transform:scale(.97)}
+.vid-chip-dot{width:6px;height:6px;border-radius:50%;background:#1a73e8;flex-shrink:0}
+.vid-chip-copied{background:#e8f5e9;border-color:#a5d6a7;color:#2e7d32}
+.vid-chip-copied .vid-chip-dot{background:#2e7d32}
+.fg label{font-size:12px;color:#666;display:block;margin-bottom:5px}
+.fg input{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit}
+.fg input:focus{outline:none;border-color:#888}
+.m-btns{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.rag-m{background:#fff;border-radius:12px;padding:24px;width:380px;max-width:90vw}
+.rag-ttl{font-size:15px;font-weight:600;color:#e65100;margin-bottom:10px}
+.rag-body{font-size:13px;color:#555;margin-bottom:16px;line-height:1.7}
+.rag-chk{display:flex;align-items:center;gap:10px;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:12px;margin-bottom:18px;cursor:pointer}
+.rag-chk input{width:16px;height:16px;accent-color:#e65100;cursor:pointer}
+.rag-chk span{font-size:13px;font-weight:500;color:#e65100}
+</style>
+</head>
+<body>
+
+<!-- Config overlay -->
+<div class="ov" id="cfgOv">
+  <div class="cfg-m">
+    <div class="m-ttl">設定 Google Sheets 連結</div>
+    <div class="steps">
+      <b>步驟 1</b>&nbsp; 開啟你的 Google Sheets →「擴充功能」→「Apps Script」<br>
+      <b>步驟 2</b>&nbsp; 將下載的 <code>Code.gs</code> 內容貼進去，取代全部，按儲存<br>
+      <b>步驟 3</b>&nbsp; 點右上角「部署」→「新增部署作業」→ 類型選「網頁應用程式」<br>
+      <b>步驟 4</b>&nbsp; 執行身分選「<b>我</b>」，存取權選「<b>所有人</b>」→ 按「部署」<br>
+      <b>步驟 5</b>&nbsp; 複製產生的 <code>https://script.google.com/macros/s/.../exec</code> 網址，貼到下方
+    </div>
+    <div class="fg">
+      <label>Apps Script Web App 網址</label>
+      <input id="cfgUrl" placeholder="https://script.google.com/macros/s/xxxxxx/exec">
+    </div>
+    <div class="m-btns">
+      <button class="btn-o" onclick="demoMode()">使用示範資料</button>
+      <button class="btn-p" onclick="saveCfg()">儲存並載入</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ragic overlay -->
+<div class="ov" id="ragicOv" style="display:none">
+  <div class="rag-m">
+    <div class="rag-ttl">⚠ 提醒：需要填寫 Ragic 調撥單</div>
+    <div class="rag-body">備機寄出資訊已填寫完整，請至 Ragic 系統完成出庫調撥單的填寫，以確保庫存紀錄正確。</div>
+    <label class="rag-chk">
+      <input type="checkbox" id="ragicChk" onchange="document.getElementById('ragicOkBtn').disabled=!this.checked">
+      <span>我已填寫 Ragic 調撥單</span>
+    </label>
+    <div class="m-btns">
+      <button class="btn-c" onclick="closeRagic(false)">稍後再說</button>
+      <button class="btn-s" id="ragicOkBtn" disabled onclick="closeRagic(true)">確認完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings overlay -->
+<div class="ov" id="settingsOv" style="display:none">
+  <div class="cfg-m">
+    <div class="m-ttl">⚙ 設定</div>
+    <div class="fg" style="margin-top:14px">
+      <label>Apps Script Web App 網址</label>
+      <input id="settingsUrl" placeholder="https://script.google.com/macros/s/xxxxxx/exec">
+      <div style="font-size:11px;color:#bbb;margin-top:4px">修改後會重新載入資料</div>
+    </div>
+    <div class="m-btns">
+      <button class="btn-c" onclick="closeSettings()">取消</button>
+      <button class="btn-p" onclick="saveSettings()">儲存並重新載入</button>
+    </div>
+  </div>
+</div>
+
+<!-- Upload modal -->
+<div class="ov" id="uplOv" style="display:none">
+  <div class="upl-m">
+    <div class="upl-ttl">📹 上傳影片</div>
+    <div class="upl-folder">
+      <label>OAuth Client ID <span style="color:#bbb;font-weight:400">（第一次需輸入）</span></label>
+      <input id="uplClientId" placeholder="xxxxxxxx.apps.googleusercontent.com" oninput="localStorage.setItem('driveClientId',this.value)">
+    </div>
+    <div class="upl-folder">
+      <label>Google Drive 資料夾 ID <span style="color:#bbb;font-weight:400">（第一次需輸入，之後會記住）</span></label>
+      <input id="uplFolderId" placeholder="例：1A2B3C4D5E6F7G8H9I0J" oninput="saveFolderId()">
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:12px;color:#888;margin-bottom:8px">上傳時機</div>
+      <div class="upl-types" id="uplTypes">
+        <div class="upl-type" onclick="selType(this,'收到維修機')">收到維修機</div>
+        <div class="upl-type" onclick="selType(this,'維修機寄回')">維修機寄回</div>
+        <div class="upl-type" onclick="selType(this,'備機寄出')">備機寄出</div>
+        <div class="upl-type" onclick="selType(this,'收到備機')">收到備機</div>
+        <div class="upl-type" onclick="selType(this,'備機寄原廠')">備機寄原廠</div>
+        <div class="upl-type" onclick="selType(this,'備機從原廠寄回')">備機從原廠寄回</div>
+      </div>
+    </div>
+    <input type="file" id="uplFile" accept="video/*" style="display:none" onchange="onFileSelected()">
+    <div class="upl-drop" id="uplDrop" onclick="document.getElementById('uplFile').click()">
+      <div class="upl-drop-icon">🎬</div>
+      <div class="upl-drop-txt">點此選擇影片<br><span style="font-size:11px">MP4、MOV、AVI 等，支援大型檔案（100MB+）</span></div>
+    </div>
+    <div class="upl-prog" id="uplProg">
+      <div class="upl-prog-bar"><div class="upl-prog-fill" id="uplFill"></div></div>
+      <div class="upl-prog-txt" id="uplProgTxt">上傳中…</div>
+    </div>
+    <div class="upl-links" id="uplLinks"></div>
+    <div class="m-btns">
+      <button class="btn-c" onclick="closeUpload()">關閉</button>
+    </div>
+  </div>
+</div>
+
+<div class="hdr">
+  <div class="hdr-title">維修工單管理系統</div>
+  <div class="hdr-r">
+    <span class="sync" id="syncMsg"></span>
+    <button class="btn-o" onclick="loadData()">↻ 重新整理</button>
+    <button class="btn-o" onclick="openSettings()">⚙ 設定</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="sb">
+    <div class="sb-hd">
+      <div class="sb-top"><span class="sb-lbl">工單列表</span><span class="sb-cnt" id="sbCnt">0 筆</span></div>
+      <input class="sb-q" type="text" placeholder="搜尋店家名稱…" oninput="filterRecs(this.value)">
+    </div>
+    <div class="sb-list" id="sbList"></div>
+  </div>
+  <div class="det" id="det"><div class="det-empty">← 選擇左側工單查看詳情</div></div>
+</div>
+
+<script>
+let WEB_URL = localStorage.getItem('wbScriptUrl') || 'https://script.google.com/macros/s/AKfycbySITb4PKG-ItVrG6-wiBP3iuBCJBCZV5O88QDJggxDGvhn7mUEH4g0uDBByvW8aRIRLg/exec';
+let recs=[],shown=[];
+let curId=null,editing=false,ed={};
+// ragic state stored per-record as rec._ragicDone
+
+function openSettings(){
+  document.getElementById('settingsUrl').value = WEB_URL;
+  document.getElementById('settingsOv').style.display = 'flex';
+}
+function closeSettings(){
+  document.getElementById('settingsOv').style.display = 'none';
+}
+function saveSettings(){
+  const newUrl = document.getElementById('settingsUrl').value.trim();
+  if(!newUrl){ alert('請輸入網址'); return; }
+  WEB_URL = newUrl;
+  localStorage.setItem('wbScriptUrl', newUrl);
+  closeSettings();
+  loadData();
+}
+
+function loadCfg(){
+  document.getElementById('cfgOv').style.display='none';
+  loadData();
+}
+function saveCfg(){}
+function openCfg(){}
+function setSync(m,c){const e=document.getElementById('syncMsg');e.textContent=m;e.className='sync'+(c?' '+c:'');}
+
+async function loadData(){
+  if(!WEB_URL)return;
+  setSync('讀取中…','loading');
+  try{
+    const res=await fetch(WEB_URL+'?method=GET');
+    const d=await res.json();
+    if(d.error)throw d.error;
+    parseRows(d.rows||[]);
+    setSync('已同步 ✓','ok');
+  }catch(e){setSync('讀取失敗','err');console.error(e);}
+}
+
+async function saveRow(rec){
+  if(!WEB_URL){setSync('示範模式，不同步','');return true;}
+  setSync('儲存中…','loading');
+  const v=Array(49).fill('');
+  const s=(i,val)=>{v[i]=val||'';};
+  s(0,rec.status);s(1,rec.shipNote);s(5,rec.storeName);s(6,rec.contactName);
+  s(7,rec.contactPhone);s(8,rec.contactAddr);s(11,rec.storeNote);
+  s(12,rec.repairDevice);s(13,rec.deviceSN);s(14,rec.faultDesc);
+  s(17,rec.applyBackup);s(20,rec.backupSendDate);s(21,rec.backupSender);
+  s(23,rec.borrowDevice);s(25,rec.borrowSN);
+  s(28,rec.repairDate);s(29,rec.repairDate);s(30,rec.repairPerson);
+  s(31,rec.repairEquipName);s(32,rec.repairEquipSN);
+  s(34,rec.parts);s(35,rec.repairResult);
+  s(36,rec.transferDate);s(37,rec.transferPerson);
+  s(39,rec.factoryName);s(40,rec.factoryNote);s(41,rec.factoryReturnTest);
+  s(42,rec.returnSendDate);s(43,rec.returnSender);
+  const returnLinks=(rec.videoLink||'').split('\n').filter(e=>e.includes('維修機寄回'));
+  const returnUrl=returnLinks.map(e=>e.includes('::')?e.split('::')[1]:e).join('\n');
+  s(44,returnUrl);s(45,rec.backupReturnDate);s(46,rec.backupReceiver);s(48,rec.deviceStatus);
+  try{
+    const params=new URLSearchParams({
+      method:'PUT',
+      row:rec._row,
+      values:JSON.stringify(v)
+    });
+    const res=await fetch(WEB_URL+'?'+params.toString());
+    const d=await res.json();
+    if(d.error)throw d.error;
+    setSync('已儲存 ✓','ok');return true;
+  }catch(e){setSync('儲存失敗','err');console.error(e);return false;}
+}
+
+const DONE_STATUSES = ['已完成','取消申請','暫不處理'];
+
+function isWithin3Months(dateStr){
+  if(!dateStr) return true; // 沒有日期的不過濾掉
+  const d = new Date(dateStr);
+  if(isNaN(d)) return true;
+  const now = new Date();
+  // 取得3個月前的第一天
+  const cutoff = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+  return d >= cutoff;
+}
+
+function g(r,i){return((r[i]||'').toString().trim());}
+function parseRows(rows){
+  if(rows.length<2){recs=[];shown=[];renderList();return;}
+  recs=[];
+  for(let i=1;i<rows.length;i++){
+    const r=rows[i];
+    if(!r[0]&&!r[5])continue;
+    const status=g(r,0);
+    const applyTime=g(r,3);
+    // 篩掉已結案狀態
+    if(DONE_STATUSES.includes(status)) continue;
+    // 篩掉3個月以前的資料
+    if(!isWithin3Months(applyTime)) continue;
+    recs.push({_row:i+1,id:'#'+String(i).padStart(3,'0'),
+      status,shipNote:g(r,1),applyTime,
+      storeName:g(r,5),contactName:g(r,6),contactPhone:g(r,7),contactAddr:g(r,8),storeNote:g(r,11),
+      repairDevice:g(r,12),deviceSN:g(r,13),faultDesc:g(r,14),
+      applyBackup:g(r,17),backupSendDate:g(r,20),backupSender:g(r,21),
+      borrowDevice:g(r,23),borrowSN:g(r,25),
+      repairReceiveDate:g(r,28),repairDate:g(r,29),repairPerson:g(r,30),
+      repairEquipName:g(r,31),repairEquipSN:g(r,32),
+      parts:g(r,34),repairResult:g(r,35),
+      returnSendDate:g(r,42),returnSender:g(r,43),
+      transferDate:g(r,36),transferPerson:g(r,37),
+      factoryName:g(r,39),factoryNote:g(r,40),factoryReturnTest:g(r,41),
+      videoLink:g(r,44),backupReturnDate:g(r,45),backupReceiver:g(r,46),deviceStatus:g(r,48),
+      _t1note:'',_t2parts:{},_t2psn:'',_t3cnt:'',_t3pkg:'',_t4note:''
+    });
+  }
+  shown=[...recs];renderList();
+  if(curId){const f=recs.find(r=>r.id===curId);if(f)renderDet(f);}
+}
+
+function demoMode(){
+  document.getElementById('cfgOv').style.display='none';
+  setSync('示範模式','ok');
+  recs=[
+    {_row:2,id:'#001',status:'已完成',shipNote:'7/25備機收貨',applyTime:'2025/06/30',storeName:'中菲行（中非咖啡）',contactName:'中菲行',contactPhone:'0928-528-577',contactAddr:'台中市西區四維街46號',storeNote:'',repairDevice:'出單機 (單據)',deviceSN:'XPD600-RMBZ506080254',faultDesc:'列印內容亂碼',applyBackup:'是',backupSendDate:'2025/07/02',backupSender:'Robert',borrowDevice:'MS-T200出單機',borrowSN:'RMBZ1610251145',repairReceiveDate:'',repairDate:'2025/07/18',repairPerson:'Tim',repairEquipName:'MS-T200出單機',repairEquipSN:'RMBZ1610251145',parts:'',repairResult:'測試都正常，唯一的問題是裁刀鈍掉了，紙張只能裁一半',returnSendDate:'2025/07/20',returnSender:'Robert',transferDate:'',transferPerson:'',factoryName:'',factoryNote:'',factoryReturnTest:'',videoLink:'',backupReturnDate:'2025/07/25',backupReceiver:'Robert',deviceStatus:'測試正常',_t1note:'',_t2parts:{},_t2psn:'',_t3cnt:'',_t3pkg:'',_t4note:''},
+    {_row:3,id:'#002',status:'處理中(weiby)',shipNote:'3/13收到維修機',applyTime:'2026/03/06',storeName:'咕Morning早午餐',contactName:'林姿伶',contactPhone:'0981-071-271',contactAddr:'新北市深坑區北深路三段123號',storeNote:'',repairDevice:'出單機 (單據)',deviceSN:'T200-NMBZ1910190046',faultDesc:'列印字體很淡',applyBackup:'是',backupSendDate:'2026/03/09',backupSender:'Robert',borrowDevice:'MS-T200出單機',borrowSN:'BM2110200202',repairReceiveDate:'',repairDate:'',repairPerson:'',repairEquipName:'',repairEquipSN:'',parts:'',repairResult:'',returnSendDate:'',returnSender:'',transferDate:'',transferPerson:'',factoryName:'',factoryNote:'',factoryReturnTest:'',videoLink:'',backupReturnDate:'',backupReceiver:'',deviceStatus:'',_t1note:'',_t2parts:{},_t2psn:'',_t3cnt:'',_t3pkg:'',_t4note:''},
+    {_row:4,id:'#003',status:'處理中(等待備機寄回)',shipNote:'3/9親取備機',applyTime:'2026/03/06',storeName:'脆脆洋食行',contactName:'林上玉',contactPhone:'0932-623-293',contactAddr:'台中市一中街111號',storeNote:'週一直接到貴司台中分公司借用備機測試。',repairDevice:'貼紙機',deviceSN:'我方為自備舊機，不用修理',faultDesc:'連線異常斷線頻繁',applyBackup:'是',backupSendDate:'2026/03/09',backupSender:'Robert',borrowDevice:'LP-2',borrowSN:'LP-22307260002',repairReceiveDate:'',repairDate:'',repairPerson:'',repairEquipName:'',repairEquipSN:'',parts:'',repairResult:'',returnSendDate:'',returnSender:'',transferDate:'',transferPerson:'',factoryName:'',factoryNote:'',factoryReturnTest:'',videoLink:'',backupReturnDate:'',backupReceiver:'',deviceStatus:'',_t1note:'',_t2parts:{},_t2psn:'',_t3cnt:'',_t3pkg:'',_t4note:''},
+    {_row:5,id:'#004',status:'處理中(待店家寄出)',shipNote:'3/12寄出備機',applyTime:'2026/03/09',storeName:'黃燜雞 龜山中興店',contactName:'李薇希',contactPhone:'0966-502-903',contactAddr:'桃園市龜山區中興路380號',storeNote:'',repairDevice:'出單機 (發票)',deviceSN:'T200-BM2207200139',faultDesc:'列印字體很淡',applyBackup:'是',backupSendDate:'2026/03/11',backupSender:'Tim',borrowDevice:'MS-T200出單機',borrowSN:'BM2207200634',repairReceiveDate:'',repairDate:'',repairPerson:'',repairEquipName:'',repairEquipSN:'',parts:'',repairResult:'',returnSendDate:'',returnSender:'',transferDate:'',transferPerson:'',factoryName:'',factoryNote:'',factoryReturnTest:'',videoLink:'',backupReturnDate:'',backupReceiver:'',deviceStatus:'',_t1note:'',_t2parts:{},_t2psn:'',_t3cnt:'',_t3pkg:'',_t4note:''}
+  ];
+  shown=[...recs];renderList();
+}
+
+function bc(s){if(!s)return'b-proc';if(s.includes('已完成'))return'b-done';if(s.toLowerCase().includes('weiby'))return'b-wby';if(s.includes('待'))return'b-wait';return'b-proc';}
+function bs(s){if(!s)return'—';if(s.includes('已完成'))return'已完成';if(s.toLowerCase().includes('weiby'))return'處理中';if(s.includes('等待備機'))return'等待備機';if(s.includes('待店家'))return'待寄出';if(s.includes('處理中'))return'處理中';return s.substring(0,7);}
+function filterRecs(q){q=q.toLowerCase();shown=recs.filter(r=>r.storeName.toLowerCase().includes(q)||r.id.includes(q));renderList();}
+function renderList(){
+  document.getElementById('sbCnt').textContent=shown.length+' 筆';
+  document.getElementById('sbList').innerHTML=shown.map(r=>`
+    <div class="rec ${r.id===curId?'on':''}" onclick="sel('${r.id}')">
+      <div class="rec-id">${r.id} · ${r.applyTime}</div>
+      <div class="rec-nm">${r.storeName||'（未命名）'}</div>
+      <div class="rec-row">
+        <span class="rec-note">${r.shipNote||'—'}</span>
+        <span class="bdg ${bc(r.status)}">${bs(r.status)}</span>
+      </div>
+    </div>`).join('');
+}
+
+function sel(id){curId=id;editing=false;ed={};renderList();renderDet(recs.find(r=>r.id===id));}
+function D(){return Object.assign({},recs.find(r=>r.id===curId),ed);}
+function startEdit(){editing=true;ed={};renderDet(recs.find(r=>r.id===curId));}
+function cancelEdit(){editing=false;ed={};renderDet(recs.find(r=>r.id===curId));}
+async function commitEdit(){
+  const rec=recs.find(r=>r.id===curId);
+  // 確保收寄件紀錄欄位的值一定被讀到（即使是自動帶入沒觸發 oninput）
+  const snInput=document.getElementById('shipNoteInput');
+  if(snInput) ed.shipNote=snInput.value;
+  Object.assign(rec,ed);editing=false;ed={};
+  renderDet(rec);renderList();
+  await saveRow(rec);
+}
+
+// 觸發欄位 → 自動狀態 + 收寄件紀錄
+const STATUS_TRIGGERS = [
+  {keys:['returnSendDate','returnSender'],     status:'處理中(等待備機寄回)', note:d=>`${fmtDate(d.returnSendDate)}寄出維修機`},
+  {keys:['factoryReturnTest'],                 status:'處理中(weiby)',        note:d=>`原廠送回`},
+  {keys:['transferDate','factoryName'],        status:null,                  note:d=>`${fmtDate(d.transferDate)}送原廠`},
+  {keys:['repairDate'],                        status:'處理中(weiby)',        note:d=>`${fmtDate(d.repairDate)}收到維修機`},
+  {keys:['backupSendDate','backupSender'],     status:'處理中(待店家寄出)',    note:d=>`${fmtDate(d.backupSendDate)}寄出備機`},
+];
+
+// 動態判斷是否所有已開啟的流程都完成
+function calcDone(d){
+  const hasSentBackup   = !!d.backupSendDate;
+  const hasRepaired     = !!d.repairDate;
+  const hasSentFactory  = !!d.transferDate;
+
+  // 各流程完成條件
+  const backupDone   = !hasSentBackup  || !!d.backupReturnDate;
+  const repairDone   = !hasRepaired    || !!d.returnSendDate;
+  const factoryDone  = !hasSentFactory || !!d.factoryReturnTest;
+
+  // 至少要有一個流程被啟動，且全部完成
+  const anyActive = hasSentBackup || hasRepaired || hasSentFactory;
+  return anyActive && backupDone && repairDone && factoryDone;
+}
+
+function fmtDate(s){
+  if(!s) return '';
+  const m=(s+'').match(/(\d{4})[\/\-T](\d{2})[\/\-T](\d{2})/);
+  if(!m) return s;
+  return `${parseInt(m[2])}/${parseInt(m[3])}`;
+}
+
+function calcAutoStatus(d){
+  // 優先判斷是否所有流程都完成
+  if(calcDone(d)){
+    const note=d.backupReturnDate?`${fmtDate(d.backupReturnDate)}收到備機`:`${fmtDate(d.returnSendDate)}寄回維修機`;
+    return {status:'已完成', note};
+  }
+
+  const lastKey=ed._lastKey;
+  for(const t of STATUS_TRIGGERS){
+    if(!t.keys.includes(lastKey)) continue;
+    if(!t.keys.every(k=>d[k])) continue;
+    let st=t.status;
+    if(st===null){
+      const fn=(d.factoryName||'').toLowerCase();
+      if(fn.includes('迷宮')) st='處理中(迷宮T200)';
+      else if(fn.includes('佳昇')) st='處理中(佳昇)';
+      else st='處理中(weiby)';
+    }
+    return {status:st, note:t.note(d)};
+  }
+  return null;
+}
+
+function fld(lbl,key,full,ta){
+  const v=(D()[key]||'');const sp=full?' s2':'';
+  if(editing){
+    const onchg=`ed['${key}']=this.value;ed._lastKey='${key}';autoStatus();updTbls()`;
+    if(ta)return`<div class="fld${sp}"><div class="fl">${lbl}</div><textarea class="fi fi-ta" oninput="${onchg}">${v}</textarea></div>`;
+    return`<div class="fld${sp}"><div class="fl">${lbl}</div><input class="fi" value="${v.replace(/"/g,'&quot;')}" oninput="${onchg}"></div>`;
+  }
+  return`<div class="fld${sp}"><div class="fl">${lbl}</div><div class="fv${!v?' nil':''}">${v||'—'}</div></div>`;
+}
+
+function autoStatus(){
+  const d=D();
+  const res=calcAutoStatus(d);
+  if(res){
+    ed.status=res.status;
+    if(!ed._shipNoteManual){
+      ed.shipNote=res.note;
+      const sn=document.getElementById('shipNoteInput');
+      if(sn) sn.value=res.note;
+    }
+    const el=document.querySelector('.det-meta .bdg');
+    if(el){el.className='bdg '+bc(res.status);el.textContent=res.status;}
+  }
+}
+
+function toggleTbl(id){
+  const body=document.getElementById('tb_body_'+id);
+  const arrow=document.getElementById('tb_arrow_'+id);
+  if(!body)return;
+  const open=body.classList.toggle('open');
+  if(arrow) arrow.classList.toggle('open',open);
+}
+
+function t1ok(d){return!!(d.borrowDevice&&d.backupSendDate&&d.backupSender);}
+function t2ok(d){return!!(d.backupReturnDate&&d.backupReceiver&&d.deviceStatus);}
+function t3ok(d){return!!(d.transferDate&&d.transferPerson&&d.factoryName);}
+function t4ok(d){return!!(d.returnSendDate&&d.returnSender);}
+
+function mkTbl(title,rows){
+  const w=Math.max(...rows.map(r=>r[0].length));
+  const sep='─'.repeat(w+20);
+  const lines=rows.map(([l,v])=>l+' '.repeat(w-l.length)+'  │  '+(v||''));
+  return`【${title}】\n${sep}\n${lines.join('\n')}`;
+}
+function tbl1(d){return mkTbl('備機寄出調撥單',[['店家名稱',d.storeName],['收件人',d.contactName],['電話',d.contactPhone],['地址',d.contactAddr],['機型',d.borrowDevice],['序號',d.borrowSN],['調撥日期',d.backupSendDate],['備註',d._t1note||'']]);}
+function tbl2(d){
+  const p=d._t2parts||{};
+  const pts=[['power','電源線'],['adapter','變壓器'],['bar','橫桿'],['clip','檔片']].filter(([k])=>p[k]).map(([,l])=>l);
+  return mkTbl('備機收回入庫單',[['店家名稱',d.storeName],['機型',d.borrowDevice],['序號',d.borrowSN],['零件',pts.join('、')],['零件序號',d._t2psn||''],['回庫日期',d.backupReturnDate],['備註',d.deviceStatus]]);
+}
+function tbl3(d){return mkTbl('原廠轉送單',[['原廠',d.factoryName],['店家',d.storeName],['機型',d.repairDevice],['狀態',d.status],['序號',d.deviceSN],['機器數量',d._t3cnt||''],['包裹件數',d._t3pkg||''],['備註',d.factoryNote]]);}
+function tbl4(d){return mkTbl('維修機寄回單',[['店家名稱',d.storeName],['收件人',d.contactName],['電話',d.contactPhone],['地址',d.contactAddr],['機型',d.repairDevice],['序號',d.deviceSN],['備註',d._t4note||'']]);}
+
+function updTbls(){
+  const d=D();
+  upd1('tw1','tp1',t1ok(d),tbl1(d));upd1('tw2','tp2',t2ok(d),tbl2(d));
+  upd1('tw3','tp3',t3ok(d),tbl3(d));upd1('tw4','tp4',t4ok(d),tbl4(d));
+  const _rc=recs.find(r=>r.id===curId);
+  // Ragic 提醒改為勾選 checkbox 才能填日期，不再用彈窗觸發
+}
+function upd1(wid,pid,show,text){
+  const w=document.getElementById(wid);const p=document.getElementById(pid);
+  if(!w)return;
+  w.style.display=show?'block':'none';
+  if(p&&show)p.textContent=text;
+}
+function updT2(){
+  const np=Object.assign({},D()._t2parts||{});
+  ['power','adapter','bar','clip'].forEach(k=>{const e=document.getElementById('ck_'+k);if(e)np[k]=e.checked;});
+  ed._t2parts=np;
+  const ps=document.getElementById('t2psn');if(ps)ed._t2psn=ps.value;
+  updTbls();
+}
+function cpTbl(pid,bid){
+  navigator.clipboard.writeText(document.getElementById(pid).textContent).then(()=>{
+    const b=document.getElementById(bid);
+    if(b){b.textContent='已複製 ✓';b.classList.add('ok');setTimeout(()=>{b.textContent='複製';b.classList.remove('ok');},2000);}
+  });
+}
+function showRagic(){document.getElementById('ragicOv').style.display='flex';document.getElementById('ragicChk').checked=false;document.getElementById('ragicOkBtn').disabled=true;}
+function closeRagic(confirmed){
+  document.getElementById('ragicOv').style.display='none';
+  if(confirmed){const rec=recs.find(r=>r.id===curId);if(rec)rec._ragicDone=true;}
+}
+
+function renderDet(rec){
+  if(!rec)return;
+  const d=D();
+  const t1=t1ok(d),t2=t2ok(d),t3=t3ok(d),t4=t4ok(d);
+
+  const ex1=`<div class="ta-ex"><div class="fld"><div class="fl">備註（表格用）</div><input class="fi" value="${(d._t1note||'').replace(/"/g,'&quot;')}" oninput="ed._t1note=this.value;updTbls()"></div></div>`;
+  const ex2=`<div class="ta-ex"><div class="fld"><div class="fl">零件</div><div class="chk-row">${[['power','電源線'],['adapter','變壓器'],['bar','橫桿'],['clip','檔片']].map(([k,l])=>`<label class="chk-it"><input type="checkbox" id="ck_${k}" ${(d._t2parts||{})[k]?'checked':''} onchange="updT2()"> ${l}</label>`).join('')}</div></div><div class="fld" style="margin-top:8px"><div class="fl">零件序號</div><input class="fi" id="t2psn" style="max-width:220px" value="${(d._t2psn||'').replace(/"/g,'&quot;')}" oninput="ed._t2psn=this.value;updTbls()"></div></div>`;
+  const ex3=`<div class="ta-ex" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px"><div class="fld"><div class="fl">機器數量</div><input class="fi" value="${(d._t3cnt||'').replace(/"/g,'&quot;')}" oninput="ed._t3cnt=this.value;updTbls()"></div><div class="fld"><div class="fl">包裹件數</div><input class="fi" value="${(d._t3pkg||'').replace(/"/g,'&quot;')}" oninput="ed._t3pkg=this.value;updTbls()"></div></div>`;
+  const ex4=`<div class="ta-ex"><div class="fld"><div class="fl">備註（表格用）</div><input class="fi" value="${(d._t4note||'').replace(/"/g,'&quot;')}" oninput="ed._t4note=this.value;updTbls()"></div></div>`;
+  const tblBlk=(id,ttl,text,extras,show)=>show?`
+    <div id="tw${id}" class="ta-wrap">
+      <div class="ta-hd" onclick="toggleTbl('${id}')">
+        <span class="ta-ttl"><span class="ta-arrow" id="tb_arrow_${id}">▶</span> 📋 ${ttl}</span>
+        <button class="cp-btn" id="cb${id}" onclick="event.stopPropagation();cpTbl('tp${id}','cb${id}')">複製</button>
+      </div>
+      <div class="ta-body" id="tb_body_${id}">
+        ${extras}
+        <pre class="ta-pre" id="tp${id}">${text}</pre>
+      </div>
+    </div>`:'';
+
+  const shipNoteHtml = editing
+    ? `<input id="shipNoteInput" class="fi" style="margin-top:6px;max-width:260px;font-size:12px" value="${(d.shipNote||'').replace(/"/g,'&quot;')}" placeholder="收寄件紀錄（可手動輸入）" oninput="ed.shipNote=this.value;ed._shipNoteManual=true;ed._lastKey=null">`
+    : (d.shipNote?`<span class="det-chip">${d.shipNote}</span>`:'');
+
+  document.getElementById('det').innerHTML=`
+    <div class="det-hd">
+      <div>
+        <div class="det-title">${rec.storeName||'（未命名）'}</div>
+        <div class="det-sub">申請時間：${rec.applyTime}</div>
+        <div class="det-meta">
+          <span class="bdg ${bc(rec.status)}">${rec.status||'—'}</span>
+          ${shipNoteHtml}
+          ${renderVideoChips(rec)}
+        </div>
+      </div>
+      <div class="det-acts">
+        <button class="btn-o" onclick="openUpload()" style="color:#1a73e8;border-color:#1a73e8">📹 上傳影片</button>
+        ${editing
+          ?`<button class="btn-c" onclick="cancelEdit()">取消</button><button class="btn-s" onclick="commitEdit()">儲存同步</button>`
+          :`<button class="btn-o" onclick="startEdit()">編輯</button>`}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><div class="dot d-b"></div><div class="card-lbl">店家寄件資訊</div></div>
+      <div class="card-body no-sub">
+        ${fld('電話','contactPhone')}${fld('地址','contactAddr',true)}
+        ${fld('備註','storeNote',true)}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><div class="dot d-a"></div><div class="card-lbl">備機資訊</div></div>
+      <div class="sub-cols">
+        <div class="sub-col">
+          <div class="sub-lbl">申請資訊</div>
+          <div class="sub-fields">
+            ${fld('是否申請備用機','applyBackup')}
+            ${fld('借出設備','borrowDevice')}
+            ${fld('借出序號','borrowSN')}
+          </div>
+        </div>
+        <div class="sub-col">
+          <div class="sub-lbl">寄出</div>
+          <div class="sub-fields">
+            ${editing ? `
+            <div class="fld">
+              <div class="fl">寄出日期</div>
+              ${!d.backupSendDate ? `
+                <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;cursor:pointer">
+                  <input type="checkbox" id="ragicPreChk" style="width:15px;height:15px;accent-color:#e65100"
+                    ${ed._ragicPreChecked?'checked':''}
+                    onchange="ed._ragicPreChecked=this.checked;document.getElementById('bsdInput').disabled=!this.checked;if(!this.checked){ed['backupSendDate']='';document.getElementById('bsdInput').value='';}updTbls()">
+                  <span style="color:#e65100;font-weight:500;font-size:11px">已填寫 Ragic 調撥單</span>
+                </label>
+                <input id="bsdInput" class="fi" ${!ed._ragicPreChecked?'disabled':''} style="${!ed._ragicPreChecked?'opacity:.4;':''}"
+                  value="${(d.backupSendDate||'').replace(/"/g,'&quot;')}"
+                  oninput="ed['backupSendDate']=this.value;ed._lastKey='backupSendDate';autoStatus();updTbls()">
+              ` : `<input class="fi" value="${(d.backupSendDate||'').replace(/"/g,'&quot;')}"
+                  oninput="ed['backupSendDate']=this.value;ed._lastKey='backupSendDate';autoStatus();updTbls()">`}
+            </div>` : fld('寄出日期','backupSendDate')}
+            ${fld('寄出人','backupSender')}
+          </div>
+        </div>
+        <div class="sub-col">
+          <div class="sub-lbl">收回</div>
+          <div class="sub-fields">
+            ${fld('備機收回日期','backupReturnDate')}
+            ${fld('收件人','backupReceiver')}
+            ${fld('備註及機器狀態','deviceStatus')}
+            ${(()=>{
+              if(!rec.videoLink) return '';
+              const links=rec.videoLink.split('\n').filter(Boolean);
+              const backupLinks=links.filter(e=>e.includes('備機寄出'));
+              if(!backupLinks.length) return '';
+              const items=backupLinks.map((entry,i)=>{
+                const url=entry.includes('::')?entry.split('::')[1]:entry;
+                return `<div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+                  <span style="font-size:12px;color:#1a56c4;cursor:pointer;text-decoration:underline;text-underline-offset:2px;word-break:break-all" onclick="cpRawUrl('bvid${i}','${url.replace(/'/g,"\\'")}')">備機寄出影片</span>
+                  <span id="bvid${i}" style="font-size:11px;color:#2e7d32;display:none">已複製 ✓</span>
+                </div>`;
+              }).join('');
+              return `<div class="fld"><div class="fl">錄影連結</div>${items}</div>`;
+            })()}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    ${tblBlk(1,'備機寄出調撥單',tbl1(d),ex1,t1)}
+    ${tblBlk(2,'備機收回入庫單',tbl2(d),ex2,t2)}
+
+    <div class="card">
+      <div class="card-hd"><div class="dot d-g"></div><div class="card-lbl">維修機資訊</div></div>
+      <div class="sub-cols">
+        <div class="sub-col">
+          <div class="sub-lbl">收件資訊</div>
+          <div class="sub-fields">
+            ${fld('維修機器','repairDevice')}
+            ${fld('硬體設備序號','deviceSN')}
+            ${fld('機器故障狀況','faultDesc')}
+          </div>
+        </div>
+        <div class="sub-col">
+          <div class="sub-lbl">檢修</div>
+          <div class="sub-fields">
+            ${fld('檢修日期','repairDate')}
+            ${fld('檢修人','repairPerson')}
+            ${fld('檢修設備','repairEquipName')}
+            ${fld('檢修設備序號','repairEquipSN')}
+            ${fld('零件','parts')}
+            ${fld('檢修結果','repairResult')}
+          </div>
+        </div>
+        <div class="sub-col">
+          <div class="sub-lbl">寄回</div>
+          <div class="sub-fields">
+            ${fld('維修機寄回日期','returnSendDate')}
+            ${fld('寄回寄件人','returnSender')}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    ${tblBlk(4,'維修機寄回單',tbl4(d),ex4,t4)}
+
+    <div class="card">
+      <div class="card-hd"><div class="dot d-p"></div><div class="card-lbl">原廠資訊</div></div>
+      <div class="card-body no-sub">
+        ${fld('轉送日期','transferDate')}${fld('轉送人','transferPerson')}
+        ${fld('原廠名稱','factoryName')}${fld('原廠備註','factoryNote')}
+        ${fld('原廠送回測試紀錄','factoryReturnTest',true)}
+      </div>
+    </div>
+
+    ${tblBlk(3,'原廠轉送單',tbl3(d),ex3,t3)}
+  `;
+}
+
+// ── Upload (直接上傳到 Google Drive API) ──────────────────
+let uplSelectedType = '';
+let uplPendingFile  = null;
+let driveToken      = null;
+
+function openUpload(){
+  const rec = recs.find(r=>r.id===curId);
+  if(!rec) return;
+  document.getElementById('uplClientId').value = localStorage.getItem('driveClientId')||'';
+  const savedId = rec._folderId || localStorage.getItem('folderOf_'+rec.storeName) || '';
+  document.getElementById('uplFolderId').value = savedId;
+  document.getElementById('uplLinks').innerHTML = buildLinkList(rec);
+  document.getElementById('uplProg').style.display = 'none';
+  document.getElementById('uplFill').style.width = '0%';
+  uplSelectedType=''; uplPendingFile=null;
+  document.querySelectorAll('.upl-type').forEach(el=>el.classList.remove('sel'));
+  document.getElementById('uplOv').style.display='flex';
+  // 開啟時就預先請求 token，讓授權完成後選檔案可直接上傳
+  const clientId=document.getElementById('uplClientId').value.trim();
+  if(clientId&&!driveToken) _requestToken(clientId);
+}
+function closeUpload(){ document.getElementById('uplOv').style.display='none'; }
+
+function saveFolderId(){
+  const rec=recs.find(r=>r.id===curId);
+  const id=document.getElementById('uplFolderId').value.trim();
+  if(rec){rec._folderId=id;localStorage.setItem('folderOf_'+rec.storeName,id);}
+}
+
+function selType(el,type){
+  document.querySelectorAll('.upl-type').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+  uplSelectedType=type;
+  if(uplPendingFile) startUploadFlow(uplPendingFile);
+}
+function onFileSelected(){
+  const f=document.getElementById('uplFile').files[0];
+  if(!f) return;
+  uplPendingFile=f;
+  if(!uplSelectedType){alert('請先選擇上傳時機');return;}
+  startUploadFlow(f);
+}
+function handleDrop(e){
+  const f=e.dataTransfer.files[0];
+  if(!f) return;
+  uplPendingFile=f;
+  if(!uplSelectedType){alert('請先選擇上傳時機');return;}
+  startUploadFlow(f);
+}
+
+function _requestToken(clientId, callback){
+  const tc=google.accounts.oauth2.initTokenClient({
+    client_id:clientId,
+    scope:'https://www.googleapis.com/auth/drive.file',
+    callback:resp=>{
+      if(resp.error){alert('授權失敗：'+resp.error);return;}
+      driveToken=resp.access_token;
+      if(callback) callback();
+    }
+  });
+  tc.requestAccessToken({prompt:''});
+}
+
+function startUploadFlow(file){
+  const clientId=document.getElementById('uplClientId').value.trim();
+  if(!clientId){alert('請先輸入 OAuth Client ID');return;}
+  localStorage.setItem('driveClientId',clientId);
+  if(driveToken){doUpload(file);return;}
+  _requestToken(clientId, ()=>doUpload(file));
+}
+
+async function doUpload(file){
+  const folderId=document.getElementById('uplFolderId').value.trim();
+  if(!folderId){alert('請先輸入 Google Drive 資料夾 ID');return;}
+  const rec=recs.find(r=>r.id===curId);
+  if(!rec) return;
+
+  const prog=document.getElementById('uplProg');
+  const fill=document.getElementById('uplFill');
+  const txt =document.getElementById('uplProgTxt');
+  prog.style.display='block';
+  fill.style.width='5%';
+  txt.textContent='建立上傳連線…';
+
+  try{
+    const ext=file.name.split('.').pop().toLowerCase();
+    const mimeMap={'mov':'video/quicktime','mp4':'video/mp4','avi':'video/x-msvideo','wmv':'video/x-ms-wmv','mkv':'video/x-matroska','m4v':'video/x-m4v'};
+    const mimeType=file.type||mimeMap[ext]||'video/quicktime';
+    const ts=new Date().toISOString().slice(0,10);
+    const fileName=`${rec.storeName}_${uplSelectedType}_${ts}.${ext}`;
+
+    // Step 1: 建立 resumable upload session
+    const initRes=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable',{
+      method:'POST',
+      headers:{
+        'Authorization':'Bearer '+driveToken,
+        'Content-Type':'application/json',
+        'X-Upload-Content-Type':mimeType,
+        'X-Upload-Content-Length':file.size
+      },
+      body:JSON.stringify({name:fileName,parents:[folderId]})
+    });
+    if(!initRes.ok){
+      const e=await initRes.text();
+      if(initRes.status===401){driveToken=null;startUploadFlow(file);return;}
+      throw e;
+    }
+    const uploadUrl=initRes.headers.get('Location');
+    fill.style.width='10%';
+    txt.textContent='上傳中…';
+
+    // Step 2: 分塊 PUT（5MB/塊）
+    const CHUNK=5*1024*1024;
+    let offset=0;
+    while(offset<file.size){
+      const end=Math.min(offset+CHUNK,file.size);
+      const chunk=file.slice(offset,end);
+      const res=await fetch(uploadUrl,{
+        method:'PUT',
+        headers:{
+          'Content-Range':`bytes ${offset}-${end-1}/${file.size}`,
+          'Content-Type':mimeType
+        },
+        body:chunk
+      });
+      if(res.status===308){
+        // 繼續上傳
+        const range=res.headers.get('Range');
+        offset=range?parseInt(range.split('-')[1])+1:end;
+      } else if(res.ok){
+        // 完成
+        const data=await res.json();
+        fill.style.width='100%';
+        txt.textContent='上傳完成 ✓';
+        // 設定分享權限
+        await fetch(`https://www.googleapis.com/drive/v3/files/${data.id}/permissions`,{
+          method:'POST',
+          headers:{'Authorization':'Bearer '+driveToken,'Content-Type':'application/json'},
+          body:JSON.stringify({role:'reader',type:'anyone'})
+        });
+        const fileUrl=`https://drive.google.com/file/d/${data.id}/view`;
+        const entry=`${uplSelectedType}::${fileUrl}`;
+        const prev=rec.videoLink||'';
+        rec.videoLink=prev?prev+'\n'+entry:entry;
+        await saveRow(rec);
+        if(curId) renderDet(recs.find(r=>r.id===curId));
+        document.getElementById('uplLinks').innerHTML=buildLinkList(rec);
+        uplPendingFile=null;
+        return;
+      } else {
+        throw await res.text();
+      }
+      const pct=10+Math.round((offset/file.size)*88);
+      fill.style.width=pct+'%';
+      txt.textContent=`上傳中… ${Math.round(offset/1024/1024)}MB / ${Math.round(file.size/1024/1024)}MB`;
+    }
+  }catch(e){
+    txt.textContent='上傳失敗：'+e;
+    fill.style.width='0%';
+    console.error(e);
+  }
+}
+
+function cpRawUrl(badgeId,url){
+  navigator.clipboard.writeText(url).then(()=>{
+    const el=document.getElementById(badgeId);
+    if(!el)return;
+    el.style.display='inline';
+    setTimeout(()=>{el.style.display='none';},2000);
+  });
+}
+function renderVideoChips(rec){
+  if(!rec.videoLink) return '';
+  const SHOW_TYPES=['備機寄出','維修機寄回'];
+  const chips=rec.videoLink.split('\n').filter(Boolean)
+    .filter(entry=>SHOW_TYPES.some(t=>entry.includes(t)))
+    .map((entry,i)=>{
+      const sep=entry.indexOf('::');
+      const type=sep>-1?entry.slice(0,sep):'影片';
+      const url=sep>-1?entry.slice(sep+2):entry;
+      return `<span class="vid-chip" id="vc${i}" onclick="cpVid(${i},'${url.replace(/'/g,"\\'")}')"><span class="vid-chip-dot"></span>${type}影片</span>`;
+    });
+  return chips.length?`<div class="vid-chips">${chips.join('')}</div>`:'';
+}
+function cpVid(i,url){
+  navigator.clipboard.writeText(url).then(()=>{
+    const el=document.getElementById('vc'+i);
+    if(!el)return;
+    el.classList.add('vid-chip-copied');
+    const dot=el.querySelector('.vid-chip-dot');
+    const orig=el.childNodes[1].textContent;
+    el.childNodes[1].textContent='已複製 ✓';
+    setTimeout(()=>{el.classList.remove('vid-chip-copied');el.childNodes[1].textContent=orig;},2000);
+  });
+}
+function buildLinkList(rec){
+  if(!rec.videoLink) return '';
+  return rec.videoLink.split('\n').filter(Boolean).map(entry=>{
+    const sep=entry.indexOf('::');
+    const type=sep>-1?entry.slice(0,sep):'影片';
+    const url=sep>-1?entry.slice(sep+2):entry;
+    return `<div class="upl-link-item"><span class="upl-link-tag">${type}</span><a href="${url}" target="_blank">${url}</a></div>`;
+  }).join('');
+}
+
+window.onload=loadCfg;
+</script>
+</body>
+</html>
