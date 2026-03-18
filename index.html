@@ -200,7 +200,7 @@ button{cursor:pointer;border:none;border-radius:7px;font-size:13px;padding:6px 1
       <div style="font-size:12px;color:#888;margin-bottom:8px">上傳時機</div>
       <div class="upl-types" id="uplTypes">
         <div class="upl-type" onclick="selType(this,'收到維修機')">收到維修機</div>
-        <div class="upl-type" onclick="selType(this,'寄出維修機')">寄出維修機</div>
+        <div class="upl-type" onclick="selType(this,'維修機寄回')">維修機寄回</div>
         <div class="upl-type" onclick="selType(this,'備機寄出')">備機寄出</div>
         <div class="upl-type" onclick="selType(this,'收到備機')">收到備機</div>
         <div class="upl-type" onclick="selType(this,'備機寄原廠')">備機寄原廠</div>
@@ -721,6 +721,9 @@ function openUpload(){
   uplSelectedType=''; uplPendingFile=null;
   document.querySelectorAll('.upl-type').forEach(el=>el.classList.remove('sel'));
   document.getElementById('uplOv').style.display='flex';
+  // 開啟時就預先請求 token，讓授權完成後選檔案可直接上傳
+  const clientId=document.getElementById('uplClientId').value.trim();
+  if(clientId&&!driveToken) _requestToken(clientId);
 }
 function closeUpload(){ document.getElementById('uplOv').style.display='none'; }
 
@@ -751,22 +754,25 @@ function handleDrop(e){
   startUploadFlow(f);
 }
 
-function startUploadFlow(file){
-  const clientId=document.getElementById('uplClientId').value.trim();
-  if(!clientId){alert('請先輸入 OAuth Client ID');return;}
-  localStorage.setItem('driveClientId',clientId);
-  if(driveToken){doUpload(file);return;}
-  // 請求 OAuth token
+function _requestToken(clientId, callback){
   const tc=google.accounts.oauth2.initTokenClient({
     client_id:clientId,
     scope:'https://www.googleapis.com/auth/drive.file',
     callback:resp=>{
       if(resp.error){alert('授權失敗：'+resp.error);return;}
       driveToken=resp.access_token;
-      doUpload(file);
+      if(callback) callback();
     }
   });
   tc.requestAccessToken({prompt:''});
+}
+
+function startUploadFlow(file){
+  const clientId=document.getElementById('uplClientId').value.trim();
+  if(!clientId){alert('請先輸入 OAuth Client ID');return;}
+  localStorage.setItem('driveClientId',clientId);
+  if(driveToken){doUpload(file);return;}
+  _requestToken(clientId, ()=>doUpload(file));
 }
 
 async function doUpload(file){
