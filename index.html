@@ -7,7 +7,7 @@
 <script src="https://accounts.google.com/gsi/client" async></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:#f0f0ec;color:#111;height:100vh;display:flex;flex-direction:column;font-size:14px}
+body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:#f0f0ec;color:#111;min-height:100vh;height:100%;display:flex;flex-direction:column;font-size:14px}
 .hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:#fff;border-bottom:1px solid #e8e8e8;flex-shrink:0}
 .hdr-title{font-size:14px;font-weight:600}
 .hdr-r{display:flex;align-items:center;gap:10px}
@@ -17,7 +17,7 @@ button{cursor:pointer;border:none;border-radius:7px;font-size:13px;padding:6px 1
 .btn-p{background:#111;color:#fff}.btn-p:hover{background:#333}
 .btn-s{background:#1a6b2a;color:#fff}.btn-s:hover{background:#155722}
 .btn-c{background:transparent;border:1px solid #ccc;color:#555}
-.layout{display:flex;flex:1;overflow:hidden}
+.layout{display:flex;flex:1;overflow:hidden;min-height:0}
 .sb{width:270px;flex-shrink:0;background:#fff;border-right:1px solid #e8e8e8;display:flex;flex-direction:column}
 .sb-hd{padding:12px;border-bottom:1px solid #f0f0f0}
 .sb-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
@@ -78,6 +78,44 @@ button{cursor:pointer;border:none;border-radius:7px;font-size:13px;padding:6px 1
 .chk-it{display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer}
 .chk-it input{width:15px;height:15px;cursor:pointer}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:999}
+
+/* ── RWD ─────────────────────────────────────── */
+.mob-back{display:none;align-items:center;gap:6px;padding:11px 14px;background:#fff;border-bottom:1px solid #e8e8e8;font-size:13px;font-weight:500;color:#1a73e8;cursor:pointer;flex-shrink:0}
+@media(max-width:720px){
+  body{height:100dvh}
+  .hdr{padding:8px 12px;gap:6px}
+  .hdr-r{gap:5px}
+  .hdr-r .sync{display:none}
+  .hdr-r button{font-size:12px;padding:5px 9px}
+  .layout{position:relative;overflow:hidden}
+  /* 清單：全屏 */
+  .sb{position:absolute;inset:0;width:100%;z-index:5;transform:translateX(0);transition:transform .22s cubic-bezier(.4,0,.2,1)}
+  .sb.slide-out{transform:translateX(-100%);pointer-events:none}
+  /* 詳情：全屏，預設隱藏在右側 */
+  .det{position:absolute;inset:0;width:100%;transform:translateX(100%);transition:transform .22s cubic-bezier(.4,0,.2,1);padding:0;display:flex;flex-direction:column;background:#f0f0ec}
+  .det.slide-in{transform:translateX(0)}
+  .det-scroll{flex:1;overflow-y:auto;padding:12px}
+  .mob-back{display:flex}
+  /* 卡片 */
+  .sub-cols{grid-template-columns:1fr}
+  .sub-col{border-right:none;border-bottom:1px solid #f0f0f0;padding:12px 14px}
+  .sub-col:last-child{border-bottom:none}
+  .card-body.no-sub{grid-template-columns:1fr}
+  .card-body{grid-template-columns:1fr}
+  .fld.s2{grid-column:auto}
+  .det-hd{flex-direction:column;gap:8px}
+  .det-acts{width:100%;justify-content:flex-end}
+  .det-title{font-size:16px}
+  /* overlays */
+  .cfg-m,.upl-m,.rag-m{width:95vw;padding:16px}
+  .upl-types{grid-template-columns:1fr}
+  .vid-chips{flex-wrap:wrap}
+}
+@media(max-width:400px){
+  .hdr-title{font-size:12px}
+  .rec-nm{font-size:12px}
+  .ta-pre{font-size:11px}
+}
 .cfg-m{background:#fff;border-radius:12px;padding:24px;width:500px;max-width:92vw}
 .m-ttl{font-size:15px;font-weight:600;margin-bottom:6px}
 .steps{background:#f8f8f8;border-radius:8px;padding:14px;margin-bottom:18px;font-size:12px;color:#555;line-height:2.1}
@@ -272,14 +310,17 @@ button{cursor:pointer;border:none;border-radius:7px;font-size:13px;padding:6px 1
 </div>
 
 <div class="layout">
-  <div class="sb">
+  <div class="sb" id="sb">
     <div class="sb-hd">
       <div class="sb-top"><span class="sb-lbl">工單列表</span><span class="sb-cnt" id="sbCnt">0 筆</span></div>
       <input class="sb-q" type="text" placeholder="搜尋店家名稱…" oninput="filterRecs(this.value)">
     </div>
     <div class="sb-list" id="sbList"></div>
   </div>
-  <div class="det" id="det"><div class="det-empty">← 選擇左側工單查看詳情</div></div>
+  <div class="det" id="det">
+    <div class="mob-back" onclick="mobBack()">← 返回清單</div>
+    <div class="det-scroll" id="detScroll"><div class="det-empty">← 選擇左側工單查看詳情</div></div>
+  </div>
 </div>
 
 <script>
@@ -429,7 +470,21 @@ function renderList(){
     </div>`).join('');
 }
 
-function sel(id){curId=id;editing=false;ed={};renderList();renderDet(recs.find(r=>r.id===id));}
+function isMob(){ return window.innerWidth<=720; }
+function mobBack(){
+  document.getElementById('sb').classList.remove('slide-out');
+  document.getElementById('det').classList.remove('slide-in');
+}
+function sel(id){
+  curId=id; editing=false; ed={};
+  renderList();
+  renderDet(recs.find(r=>r.id===id));
+  if(isMob()){
+    document.getElementById('sb').classList.add('slide-out');
+    document.getElementById('det').classList.add('slide-in');
+    document.getElementById('det').scrollTop=0;
+  }
+}
 function D(){return Object.assign({},recs.find(r=>r.id===curId),ed);}
 function startEdit(){editing=true;ed={};renderDet(recs.find(r=>r.id===curId));}
 function cancelEdit(){editing=false;ed={};renderDet(recs.find(r=>r.id===curId));}
@@ -608,7 +663,7 @@ function renderDet(rec){
     ? `<input id="shipNoteInput" class="fi" style="margin-top:6px;max-width:260px;font-size:12px" value="${(d.shipNote||'').replace(/"/g,'&quot;')}" placeholder="收寄件紀錄（可手動輸入）" oninput="ed.shipNote=this.value;ed._shipNoteManual=true;ed._lastKey=null">`
     : (d.shipNote?`<span class="det-chip">${d.shipNote}</span>`:'');
 
-  document.getElementById('det').innerHTML=`
+  document.getElementById('detScroll').innerHTML=`
     <div class="det-hd">
       <div>
         <div class="det-title">${rec.storeName||'（未命名）'}</div>
