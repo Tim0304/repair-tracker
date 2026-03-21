@@ -333,7 +333,7 @@ async function saveRow(rec){
   s(7,rec.contactPhone);s(8,rec.contactAddr);s(11,rec.storeNote);
   s(12,rec.repairDevice);s(13,rec.deviceSN);s(14,rec.faultDesc);
   s(17,rec.applyBackup);s(20,rec.backupSendDate);s(21,rec.backupSender);
-  s(23,rec.borrowDevice);s(25,rec.borrowSN);
+  s(23,rec.borrowDevice);s(25,rec.borrowSN);s(26,rec.accessorySN||'');
   s(28,rec.repairDate);s(29,rec.repairDate);s(30,rec.repairPerson);
   s(31,rec.repairEquipName);s(32,rec.repairEquipSN);
   s(34,rec.parts);s(35,rec.repairResult);
@@ -386,7 +386,7 @@ function parseRows(rows){
       storeName:g(r,5),contactName:g(r,6),contactPhone:g(r,7),contactAddr:g(r,8),storeNote:g(r,11),
       repairDevice:g(r,12),deviceSN:g(r,13),faultDesc:g(r,14),
       applyBackup:g(r,17),backupSendDate:g(r,20),backupSender:g(r,21),
-      borrowDevice:g(r,23),borrowSN:g(r,25),
+      borrowDevice:g(r,23),borrowSN:g(r,25),accessorySN:g(r,26),
       repairReceiveDate:g(r,28),repairDate:g(r,29),repairPerson:g(r,30),
       repairEquipName:g(r,31),repairEquipSN:g(r,32),
       parts:g(r,34),repairResult:g(r,35),
@@ -405,10 +405,10 @@ function demoMode(){
   document.getElementById('cfgOv').style.display='none';
   setSync('示範模式','ok');
   recs=[
-    {_row:2,id:'#001',status:'已完成',shipNote:'7/25備機收貨',applyTime:'2025/06/30',storeName:'中菲行（中非咖啡）',contactName:'中菲行',contactPhone:'0928-528-577',contactAddr:'台中市西區四維街46號',storeNote:'',repairDevice:'出單機 (單據)',deviceSN:'XPD600-RMBZ506080254',faultDesc:'列印內容亂碼',applyBackup:'是',backupSendDate:'2025/07/02',backupSender:'Robert',borrowDevice:'MS-T200出單機',borrowSN:'RMBZ1610251145',repairReceiveDate:'',repairDate:'2025/07/18',repairPerson:'Tim',repairEquipName:'MS-T200出單機',repairEquipSN:'RMBZ1610251145',parts:'',repairResult:'測試都正常，唯一的問題是裁刀鈍掉了，紙張只能裁一半',returnSendDate:'2025/07/20',returnSender:'Robert',transferDate:'',transferPerson:'',factoryName:'',factoryNote:'',factoryReturnTest:'',videoLink:'',backupReturnDate:'2025/07/25',backupReceiver:'Robert',deviceStatus:'測試正常',_t1note:'',_t2parts:{},_t2psn:'',_t3cnt:'',_t3pkg:'',_t4note:''},
-    {_row:3,id:'#002',status:'處理中(weiby)',shipNote:'3/13收到維修機',applyTime:'2026/03/06',storeName:'咕Morning早午餐',contactName:'林姿伶',contactPhone:'0981-071-271',contactAddr:'新北市深坑區北深路三段123號',storeNote:'',repairDevice:'出單機 (單據)',deviceSN:'T200-NMBZ1910190046',faultDesc:'列印字體很淡',applyBackup:'是',backupSendDate:'2026/03/09',backupSender:'Robert',borrowDevice:'MS-T200出單機',borrowSN:'BM2110200202',repairReceiveDate:'',repairDate:'',repairPerson:'',repairEquipName:'',repairEquipSN:'',parts:'',repairResult:'',returnSendDate:'',returnSender:'',transferDate:'',transferPerson:'',factoryName:'',factoryNote:'',factoryReturnTest:'',videoLink:'',backupReturnDate:'',backupReceiver:'',deviceStatus:'',_t1note:'',_t2parts:{},_t2psn:'',_t3cnt:'',_t3pkg:'',_t4note:''},
-    {_row:4,id:'#003',status:'處理中(等待備機寄回)',shipNote:'3/9親取備機',applyTime:'2026/03/06',storeName:'脆脆洋食行',contactName:'林上玉',contactPhone:'0932-623-293',contactAddr:'台中市一中街111號',storeNote:'週一直接到貴司台中分公司借用備機測試。',repairDevice:'貼紙機',deviceSN:'我方為自備舊機，不用修理',faultDesc:'連線異常斷線頻繁',applyBackup:'是',backupSendDate:'2026/03/09',backupSender:'Robert',borrowDevice:'LP-2',borrowSN:'LP-22307260002',repairReceiveDate:'',repairDate:'',repairPerson:'',repairEquipName:'',repairEquipSN:'',parts:'',repairResult:'',returnSendDate:'',returnSender:'',transferDate:'',transferPerson:'',factoryName:'',factoryNote:'',factoryReturnTest:'',videoLink:'',backupReturnDate:'',backupReceiver:'',deviceStatus:'',_t1note:'',_t2parts:{},_t2psn:'',_t3cnt:'',_t3pkg:'',_t4note:''},
-    {_row:5,id:'#004',status:'處理中(待店家寄出)',shipNote:'3/12寄出備機',applyTime:'2026/03/09',storeName:'黃燜雞 龜山中興店',contactName:'李薇希',contactPhone:'0966-502-903',contactAddr:'桃園市龜山區中興路380號',storeNote:'',repairDevice:'出單機 (發票)',deviceSN:'T200-BM2207200139',faultDesc:'列印字體很淡',applyBackup:'是',backupSendDate:'2026/03/11',backupSender:'Tim',borrowDevice:'MS-T200出單機',borrowSN:'BM2207200634',repairReceiveDate:'',repairDate:'',repairPerson:'',repairEquipName:'',repairEquipSN:'',parts:'',repairResult:'',returnSendDate:'',returnSender:'',transferDate:'',transferPerson:'',factoryName:'',factoryNote:'',factoryReturnTest:'',videoLink:'',backupReturnDate:'',backupReceiver:'',deviceStatus:'',_t1note:'',_t2parts:{},_t2psn:'',_t3cnt:'',_t3pkg:'',_t4note:''}
+    {_row:2,id:'#001',status:'已完成',shipNote:'7/25備機收貨',applyTime:'2025/06/30',storeName:'中菲行（中非咖啡）',contactName:'中菲行',contactPhone:'0928-528-577',contactAddr:'台中市西區四維街46號',storeNote:'',repairDevice:'出單機 (單據)',deviceSN:'XPD600-RMBZ506080254',faultDesc:'列印內容亂碼',applyBackup:'是',backupSendDate:'2025/07/02',backupSender:'Robert',borrowDevice:'MS-T200出單機',borrowSN:'RMBZ1610251145',accessorySN:'',repairReceiveDate:'',repairDate:'2025/07/18',repairPerson:'Tim',repairEquipName:'MS-T200出單機',repairEquipSN:'RMBZ1610251145',parts:'',repairResult:'測試都正常，唯一的問題是裁刀鈍掉了，紙張只能裁一半',returnSendDate:'2025/07/20',returnSender:'Robert',transferDate:'',transferPerson:'',factoryName:'',factoryNote:'',factoryReturnTest:'',videoLink:'',backupReturnDate:'2025/07/25',backupReceiver:'Robert',deviceStatus:'測試正常',_t1note:'',_t2parts:{},_t2psn:'',_t3cnt:'',_t3pkg:'',_t4note:''},
+    {_row:3,id:'#002',status:'處理中(weiby)',shipNote:'3/13收到維修機',applyTime:'2026/03/06',storeName:'咕Morning早午餐',contactName:'林姿伶',contactPhone:'0981-071-271',contactAddr:'新北市深坑區北深路三段123號',storeNote:'',repairDevice:'出單機 (單據)',deviceSN:'T200-NMBZ1910190046',faultDesc:'列印字體很淡',applyBackup:'是',backupSendDate:'2026/03/09',backupSender:'Robert',borrowDevice:'MS-T200出單機',borrowSN:'BM2110200202',accessorySN:'',repairReceiveDate:'',repairDate:'',repairPerson:'',repairEquipName:'',repairEquipSN:'',parts:'',repairResult:'',returnSendDate:'',returnSender:'',transferDate:'',transferPerson:'',factoryName:'',factoryNote:'',factoryReturnTest:'',videoLink:'',backupReturnDate:'',backupReceiver:'',deviceStatus:'',_t1note:'',_t2parts:{},_t2psn:'',_t3cnt:'',_t3pkg:'',_t4note:''},
+    {_row:4,id:'#003',status:'處理中(等待備機寄回)',shipNote:'3/9親取備機',applyTime:'2026/03/06',storeName:'脆脆洋食行',contactName:'林上玉',contactPhone:'0932-623-293',contactAddr:'台中市一中街111號',storeNote:'週一直接到貴司台中分公司借用備機測試。',repairDevice:'貼紙機',deviceSN:'我方為自備舊機，不用修理',faultDesc:'連線異常斷線頻繁',applyBackup:'是',backupSendDate:'2026/03/09',backupSender:'Robert',borrowDevice:'LP-2',borrowSN:'LP-22307260002',accessorySN:'',repairReceiveDate:'',repairDate:'',repairPerson:'',repairEquipName:'',repairEquipSN:'',parts:'',repairResult:'',returnSendDate:'',returnSender:'',transferDate:'',transferPerson:'',factoryName:'',factoryNote:'',factoryReturnTest:'',videoLink:'',backupReturnDate:'',backupReceiver:'',deviceStatus:'',_t1note:'',_t2parts:{},_t2psn:'',_t3cnt:'',_t3pkg:'',_t4note:''},
+    {_row:5,id:'#004',status:'處理中(待店家寄出)',shipNote:'3/12寄出備機',applyTime:'2026/03/09',storeName:'黃燜雞 龜山中興店',contactName:'李薇希',contactPhone:'0966-502-903',contactAddr:'桃園市龜山區中興路380號',storeNote:'',repairDevice:'出單機 (發票)',deviceSN:'T200-BM2207200139',faultDesc:'列印字體很淡',applyBackup:'是',backupSendDate:'2026/03/11',backupSender:'Tim',borrowDevice:'MS-T200出單機',borrowSN:'BM2207200634',accessorySN:'',repairReceiveDate:'',repairDate:'',repairPerson:'',repairEquipName:'',repairEquipSN:'',parts:'',repairResult:'',returnSendDate:'',returnSender:'',transferDate:'',transferPerson:'',factoryName:'',factoryNote:'',factoryReturnTest:'',videoLink:'',backupReturnDate:'',backupReceiver:'',deviceStatus:'',_t1note:'',_t2parts:{},_t2psn:'',_t3cnt:'',_t3pkg:'',_t4note:''}
   ];
   shown=[...recs];renderList();
 }
@@ -1007,10 +1007,16 @@ function dpClear(){ dpSel={}; dpRender(); }
 function dpConfirm(){
   const v=Object.values(dpSel);
   if(!v.length){ alert('請至少選擇一項'); return; }
+  // 附件群組：變壓器、電源線、電源線/變壓器
+  const ACC_GROUPS=['變壓器','電源線','電源線/變壓器'];
+  const mainItems=v.filter(x=>!ACC_GROUPS.includes(x.g));
+  const accItems=v.filter(x=>ACC_GROUPS.includes(x.g));
   const names=[...new Set(v.map(x=>x.name))].join('、');
-  const sns=v.map(x=>x.sn).join(' / ');
+  const mainSns=mainItems.map(x=>x.sn).join(' / ');
+  const accSns=accItems.map(x=>x.sn).join(' / ');
   ed.borrowDevice=names;
-  ed.borrowSN=sns;
+  ed.borrowSN=mainSns||(accItems.length?accSns:'');
+  ed.accessorySN=accSns;
   closeDevPicker();
   renderDet(recs.find(r=>r.id===curId));
 }
