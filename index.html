@@ -184,6 +184,41 @@ button{cursor:pointer;border:none;border-radius:7px;font-size:13px;padding:6px 1
   </div>
 </div>
 
+<!-- Inventory modal -->
+<div class="ov" id="invOv" style="display:none">
+  <div style="background:#fff;border-radius:12px;width:560px;max-width:92vw;overflow:hidden;max-height:88vh;display:flex;flex-direction:column">
+    <div style="padding:14px 18px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <span style="font-size:14px;font-weight:600">備機庫存管理</span>
+      <button class="btn-c" onclick="closeInventory()">關閉</button>
+    </div>
+    <div style="display:flex;border-bottom:1px solid #f0f0f0;flex-shrink:0" id="invTabs"></div>
+    <div style="padding:14px 16px;overflow-y:auto;flex:1;background:#f8f8f8" id="invBody"></div>
+  </div>
+</div>
+
+<!-- Device picker overlay -->
+<div class="ov" id="devPickerOv" style="display:none">
+  <div style="background:var(--color-background-primary);border-radius:12px;width:560px;max-width:92vw;overflow:hidden;max-height:90vh;display:flex;flex-direction:column">
+    <div style="padding:14px 18px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <span style="font-size:14px;font-weight:600">選擇借出設備</span>
+      <span style="font-size:12px;color:#aaa">可複選</span>
+    </div>
+    <div style="display:flex;gap:14px;padding:7px 18px;border-bottom:1px solid #f0f0f0;background:#f8f8f8;flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#666"><div style="width:8px;height:8px;border-radius:50%;background:#1a73e8"></div>可借出</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#666"><div style="width:8px;height:8px;border-radius:50%;background:#e65100;opacity:.7"></div>借出中（不可選）</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid #f0f0f0;flex-shrink:0" id="dpTabs"></div>
+    <div style="padding:12px 18px;overflow-y:auto;flex:1;min-height:200px;max-height:320px" id="dpBody"></div>
+    <div style="padding:11px 18px;border-top:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-shrink:0">
+      <div style="font-size:12px;color:#888;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="dpSum">尚未選擇</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-c" onclick="dpClear()">清除</button>
+        <button class="btn-s" onclick="dpConfirm()">確認選擇</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Upload modal -->
 <div class="ov" id="uplOv" style="display:none">
   <div class="upl-m">
@@ -228,6 +263,7 @@ button{cursor:pointer;border:none;border-radius:7px;font-size:13px;padding:6px 1
   <div class="hdr-r">
     <span class="sync" id="syncMsg"></span>
     <button class="btn-o" onclick="loadData()">↻ 重新整理</button>
+    <button class="btn-o" onclick="openInventory()" style="color:#1a6b2a;border-color:#4caf50">📦 備機庫存</button>
     <button class="btn-o" onclick="openSettings()">⚙ 設定</button>
   </div>
 </div>
@@ -603,8 +639,21 @@ function renderDet(rec){
           <div class="sub-lbl">申請資訊</div>
           <div class="sub-fields">
             ${fld('是否申請備用機','applyBackup')}
-            ${fld('借出設備','borrowDevice')}
-            ${fld('借出序號','borrowSN')}
+            ${editing ? `
+            <div class="fld">
+              <div class="fl">借出設備</div>
+              <div style="font-size:13px;color:${d.borrowDevice?'var(--color-text-primary)':'var(--color-text-tertiary)'};margin-bottom:4px">${d.borrowDevice||'—'}</div>
+              <div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:6px">${d.borrowSN||''}</div>
+              <button onclick="openDevPicker()" style="font-size:12px;padding:4px 12px;border:0.5px solid #1a73e8;border-radius:6px;background:#fff;color:#1a73e8;cursor:pointer">選擇設備</button>
+            </div>` : `
+            <div class="fld">
+              <div class="fl">借出設備</div>
+              <div class="fv${!d.borrowDevice?' nil':''}">${d.borrowDevice||'—'}</div>
+            </div>
+            <div class="fld">
+              <div class="fl">借出序號</div>
+              <div class="fv${!d.borrowSN?' nil':''}">${d.borrowSN||'—'}</div>
+            </div>`}
           </div>
         </div>
         <div class="sub-col">
@@ -708,6 +757,260 @@ function renderDet(rec){
 let uplSelectedType = '';
 let uplPendingFile  = null;
 let driveToken      = null;
+
+// ── Device Picker ──────────────────────────────────────────
+// ── 備機庫存 ─────────────────────────────────────────────
+const DEFAULT_INVENTORY = {
+  '出單機':[
+    {g:'出單機',name:'BP-T3B出單機',sn:'T3X2008270129'},
+    {g:'出單機',name:'MS-T200出單機',sn:'XPD600-RMBZ1506080269'},
+    {g:'出單機',name:'MS-T200出單機',sn:'XPD600-RMBZ1506080230'},
+    {g:'出單機',name:'MS-T200出單機',sn:'BM2311070404'},
+    {g:'出單機',name:'MS-T200出單機',sn:'BM2311070405'},
+    {g:'出單機',name:'MS-T200出單機',sn:'BM2311070515'},
+    {g:'出單機',name:'MS-T200出單機',sn:'BM2311070443'},
+    {g:'出單機',name:'MS-T200出單機',sn:'BM2207200634'},
+    {g:'出單機',name:'MS-T200出單機',sn:'BM2311070109'},
+    {g:'出單機',name:'MS-T200出單機',sn:'BM2110200202'},
+    {g:'出單機',name:'MS-T200出單機',sn:'BM2101050486'},
+    {g:'出單機',name:'MS-T200出單機',sn:'BM2505060164'},
+    {g:'出單機',name:'MS-T200出單機',sn:'BM2505060167'},
+    {g:'出單機',name:'MS-T200出單機',sn:'BM2505060168'},
+    {g:'出單機',name:'MS-T200出單機',sn:'BM2311070503'},
+    {g:'變壓器',name:'變壓器',sn:'041101-001'},{g:'變壓器',name:'變壓器',sn:'041101-002'},
+    {g:'變壓器',name:'變壓器',sn:'041101-003'},{g:'變壓器',name:'變壓器',sn:'041101-004'},
+    {g:'變壓器',name:'變壓器',sn:'041101-005'},{g:'變壓器',name:'變壓器',sn:'041101-006'},
+    {g:'變壓器',name:'變壓器',sn:'041101-007'},{g:'變壓器',name:'變壓器',sn:'041101-008'},
+    {g:'變壓器',name:'變壓器',sn:'041101-009'},{g:'變壓器',name:'變壓器',sn:'041101-011'},
+    {g:'變壓器',name:'變壓器',sn:'041101-012'},{g:'變壓器',name:'變壓器',sn:'041101-013'},
+    {g:'變壓器',name:'變壓器',sn:'041101-014'},{g:'變壓器',name:'變壓器',sn:'041101-018'},
+    {g:'變壓器',name:'變壓器',sn:'041101-022'},{g:'變壓器',name:'變壓器',sn:'041101-025'},
+    {g:'變壓器',name:'變壓器',sn:'041101-026'},{g:'變壓器',name:'變壓器',sn:'041101-027'},
+    {g:'變壓器',name:'變壓器',sn:'041101-028'},{g:'變壓器',name:'變壓器',sn:'041101-029'},
+    {g:'變壓器',name:'變壓器',sn:'041101-030'},{g:'變壓器',name:'變壓器',sn:'041101-031'},
+    {g:'變壓器',name:'變壓器',sn:'041101-032'},
+    {g:'電源線',name:'電源線',sn:'041104-001'},{g:'電源線',name:'電源線',sn:'041104-002'},
+    {g:'電源線',name:'電源線',sn:'041104-003'},{g:'電源線',name:'電源線',sn:'041104-006'},
+    {g:'電源線',name:'電源線',sn:'041104-007'},{g:'電源線',name:'電源線',sn:'041104-008'},
+    {g:'電源線',name:'電源線',sn:'041104-012'},{g:'電源線',name:'電源線',sn:'041104-013'},
+    {g:'電源線',name:'電源線',sn:'041104-014'},{g:'電源線',name:'電源線',sn:'041104-016'},
+    {g:'電源線',name:'電源線',sn:'041104-017'},{g:'電源線',name:'電源線',sn:'041104-018'},
+    {g:'電源線',name:'電源線',sn:'041104-023'},{g:'電源線',name:'電源線',sn:'041104-024'},
+    {g:'電源線',name:'電源線',sn:'041104-025'},{g:'電源線',name:'電源線',sn:'041104-026'},
+    {g:'電源線',name:'電源線',sn:'041104-027'},
+  ],
+  '貼紙機':[
+    {g:'貼紙機',name:'LP-2',sn:'LP-22206170027'},
+    {g:'貼紙機',name:'LP-2',sn:'LP-22207230083'},
+    {g:'貼紙機',name:'LP-2',sn:'LP-22206170067'},
+    {g:'貼紙機',name:'LP-2',sn:'LP-22403210132'},
+    {g:'貼紙機',name:'LP-2',sn:'LP-22403210139'},
+    {g:'貼紙機',name:'LP-2',sn:'LP-22307260002'},
+    {g:'電源線/變壓器',name:'Godex電源線',sn:'041103-001'},
+    {g:'電源線/變壓器',name:'LP-2電源線',sn:'041102-001'},
+    {g:'電源線/變壓器',name:'LP-2電源線',sn:'041102-002'},
+    {g:'電源線/變壓器',name:'LP-2電源線',sn:'041102-003'},
+    {g:'電源線/變壓器',name:'LP-2電源線',sn:'041102-004'},
+    {g:'電源線/變壓器',name:'LP-2電源線',sn:'041102-005'},
+    {g:'電源線/變壓器',name:'LP-2電源線',sn:'041102-006'},
+    {g:'電源線/變壓器',name:'LP-2電源線',sn:'041102-007'},
+    {g:'電源線/變壓器',name:'LP-2電源線',sn:'041102-008'},
+    {g:'電源線/變壓器',name:'LP-2電源線',sn:'041102-009'},
+    {g:'電源線/變壓器',name:'LP-2電源線',sn:'041102-010'},
+  ],
+  '其他機器':[
+    {g:'分享器',name:'MR7350',sn:'E89F807D9DB3'},
+    {g:'分享器',name:'AC1300',sn:'H2IT1E000872'},
+    {g:'分享器',name:'AX55',sn:'2256268004185'},
+    {g:'其他',name:'二手錢槽',sn:'—'},
+    {g:'掃描槍',name:'socket mobile CHS 7Ci',sn:'17408550000620665'},
+    {g:'掃描槍',name:'socket mobile CHS 7Ci',sn:'15528550000800000'},
+    {g:'掃描盒子',name:'掃描盒子',sn:'備機3'},
+    {g:'掃描盒子',name:'掃描盒子',sn:'備機4'},
+  ]
+};
+
+function getInventory(){
+  try{
+    const s=localStorage.getItem('wbInventory');
+    return s?JSON.parse(s):JSON.parse(JSON.stringify(DEFAULT_INVENTORY));
+  }catch(e){ return JSON.parse(JSON.stringify(DEFAULT_INVENTORY)); }
+}
+function saveInventory(inv){ localStorage.setItem('wbInventory',JSON.stringify(inv)); }
+
+// ── 庫存管理 Modal ─────────────────────────────────────────
+let invCur='出單機';
+function openInventory(){
+  invCur='出單機';
+  document.getElementById('invOv').style.display='flex';
+  renderInv();
+}
+function closeInventory(){ document.getElementById('invOv').style.display='none'; }
+
+function renderInv(){
+  const inv=getInventory();
+  const TABS=Object.keys(inv);
+  document.getElementById('invTabs').innerHTML=TABS.map(t=>
+    `<div onclick="invSw('${t}')" style="padding:10px 4px;font-size:13px;cursor:pointer;text-align:center;font-weight:${t===invCur?'500':'400'};color:${t===invCur?'#111':'#888'};border-bottom:${t===invCur?'2px solid #111':'2px solid transparent'};margin-bottom:-1px;flex:1">${t}</div>`
+  ).join('');
+  const items=inv[invCur];
+  let h='',lg='';
+  items.forEach((it,i)=>{
+    if(it.g!==lg){
+      if(lg) h+=`<div style="display:flex;align-items:center;gap:8px;margin-top:12px;margin-bottom:4px">
+        <span style="font-size:11px;font-weight:500;color:#aaa">${it.g}</span>
+        <button onclick="invAddItem('${invCur}','${it.g}')" style="font-size:11px;padding:2px 8px;border:0.5px solid #1a73e8;border-radius:5px;background:#fff;color:#1a73e8;cursor:pointer">+ 新增</button>
+      </div>`;
+      else h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-size:11px;font-weight:500;color:#aaa">${it.g}</span>
+        <button onclick="invAddItem('${invCur}','${it.g}')" style="font-size:11px;padding:2px 8px;border:0.5px solid #1a73e8;border-radius:5px;background:#fff;color:#1a73e8;cursor:pointer">+ 新增</button>
+      </div>`;
+      lg=it.g;
+    }
+    h+=`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;border:0.5px solid #f0f0f0;margin-bottom:3px;background:#fff">
+      <span style="font-size:13px;font-weight:500;flex:1;color:#111">${it.name}</span>
+      <span style="font-size:12px;color:#aaa;margin-right:4px">${it.sn}</span>
+      <button onclick="invDel('${invCur}',${i})" style="font-size:12px;padding:2px 8px;border:0.5px solid #ffcdd2;border-radius:5px;background:#fff;color:#c62828;cursor:pointer">刪除</button>
+    </div>`;
+  });
+  // add new group button
+  h+=`<div style="margin-top:14px;padding-top:10px;border-top:0.5px solid #f0f0f0">
+    <button onclick="invAddNewGroup('${invCur}')" style="font-size:12px;padding:5px 12px;border:0.5px dashed #aaa;border-radius:7px;background:#fff;color:#666;cursor:pointer;width:100%">+ 新增群組</button>
+  </div>`;
+  document.getElementById('invBody').innerHTML=h;
+}
+
+function invSw(t){ invCur=t; renderInv(); }
+
+function invDel(tab,i){
+  if(!confirm('確定刪除這筆設備？')) return;
+  const inv=getInventory();
+  inv[tab].splice(i,1);
+  saveInventory(inv);
+  renderInv();
+}
+
+function invAddItem(tab,group){
+  const name=prompt('設備名稱：');
+  if(name===null) return;
+  const sn=prompt('序號：');
+  if(sn===null) return;
+  const inv=getInventory();
+  // 找到同 group 的最後一筆位置後面插入
+  let insertIdx=inv[tab].length;
+  for(let i=inv[tab].length-1;i>=0;i--){
+    if(inv[tab][i].g===group){ insertIdx=i+1; break; }
+  }
+  inv[tab].splice(insertIdx,0,{g:group,name:name.trim(),sn:sn.trim()});
+  saveInventory(inv);
+  renderInv();
+}
+
+function invAddNewGroup(tab){
+  const group=prompt('新群組名稱：');
+  if(!group) return;
+  const name=prompt('第一筆設備名稱：');
+  if(name===null) return;
+  const sn=prompt('序號：');
+  if(sn===null) return;
+  const inv=getInventory();
+  inv[tab].push({g:group.trim(),name:name.trim(),sn:sn.trim()});
+  saveInventory(inv);
+  renderInv();
+}
+
+let dpCur='出單機', dpSel={};
+
+function getDpLoanStatus(){
+  // 從所有工單找出哪些設備 SN 已借出，回傳 {sn: storeName}
+  const loanMap={};
+  const curRec=recs.find(r=>r.id===curId);
+  recs.forEach(r=>{
+    if(!r.borrowSN||!r.storeName) return;
+    // 排除自己這張工單
+    if(curRec&&r.id===curRec.id) return;
+    // 只有有備機且未收回才算借出中
+    if(r.backupReturnDate) return;
+    if(!r.backupSendDate) return;
+    r.borrowSN.split('/').map(s=>s.trim()).filter(Boolean).forEach(sn=>{
+      loanMap[sn]=r.storeName;
+    });
+  });
+  return loanMap;
+}
+
+function openDevPicker(){
+  dpSel={};
+  dpCur='出單機';
+  document.getElementById('devPickerOv').style.display='flex';
+  dpRender();
+}
+function closeDevPicker(){ document.getElementById('devPickerOv').style.display='none'; }
+
+function dpSw(t){ dpCur=t; dpRender(); }
+
+function dpRender(){
+  const inv=getInventory();
+  const loanMap=getDpLoanStatus();
+  const TABS=Object.keys(inv);
+  document.getElementById('dpTabs').innerHTML=TABS.map(t=>{
+    const cnt=Object.keys(dpSel).filter(k=>k.startsWith(t+'|')).length;
+    const on=t===dpCur;
+    return `<div onclick="dpSw('${t}')" style="padding:10px 4px;font-size:13px;cursor:pointer;text-align:center;font-weight:${on?'500':'400'};color:${on?'#111':'#888'};border-bottom:${on?'2px solid #111':'2px solid transparent'};margin-bottom:-1px">${t}${cnt?`<span style="display:inline-block;font-size:11px;background:#1a73e8;color:#fff;border-radius:20px;padding:0 6px;margin-left:4px;line-height:18px;vertical-align:middle">${cnt}</span>`:''}</div>`;
+  }).join('');
+  const items=inv[dpCur]||[];
+  let h='',lg='';
+  items.forEach((it,i)=>{
+    if(it.g!==lg){
+      h+=`<div style="font-size:11px;font-weight:500;color:#aaa;letter-spacing:.04em;padding:${lg?'10px':'0'} 0 4px;${lg?'border-top:0.5px solid #f0f0f0;margin-top:4px':''}">${it.g}</div>`;
+      lg=it.g;
+    }
+    const id=dpCur+'|'+i;
+    const sl=!!dpSel[id];
+    const loan=loanMap[it.sn];
+    const lo=!!loan;
+    const oc=lo?'':` onclick="dpTog('${dpCur}',${i})"`;
+    h+=`<div${oc} style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;margin-bottom:2px;border:0.5px solid ${sl?'#c5d5f7':'transparent'};background:${lo?'#f8f8f8':sl?'#e8f0fe':'transparent'};opacity:${lo?.65:1};cursor:${lo?'not-allowed':'pointer'}">`;
+    h+=`<div style="width:16px;height:16px;border:1.5px solid ${sl?'#1a73e8':'#ddd'};border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:${sl?'#1a73e8':'transparent'}">`;
+    if(sl) h+=`<div style="width:9px;height:6px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(1px,-1px)"></div>`;
+    h+=`</div>`;
+    h+=`<span style="font-size:13px;font-weight:500;color:${lo?'#888':'#111'};flex:1">${it.name}</span>`;
+    h+=`<span style="font-size:12px;color:#aaa;flex-shrink:0">${it.sn}</span>`;
+    if(lo) h+=`<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#fff3e0;color:#bf360c;border:0.5px solid #ffcc80;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0">${loan}</span>`;
+    h+=`</div>`;
+  });
+  document.getElementById('dpBody').innerHTML=h;
+  dpUpdSum();
+}
+
+function dpTog(tab,i){
+  const inv=getInventory();
+  const it=(inv[tab]||[])[i];
+  if(!it) return;
+  const loan=getDpLoanStatus()[it.sn];
+  if(loan) return;
+  const id=tab+'|'+i;
+  if(dpSel[id]) delete dpSel[id]; else dpSel[id]=it;
+  dpRender();
+}
+
+function dpUpdSum(){
+  const v=Object.values(dpSel);
+  document.getElementById('dpSum').textContent=v.length?v.map(x=>x.sn).join(' / '):'尚未選擇';
+}
+
+function dpClear(){ dpSel={}; dpRender(); }
+
+function dpConfirm(){
+  const v=Object.values(dpSel);
+  if(!v.length){ alert('請至少選擇一項'); return; }
+  const names=[...new Set(v.map(x=>x.name))].join('、');
+  const sns=v.map(x=>x.sn).join(' / ');
+  ed.borrowDevice=names;
+  ed.borrowSN=sns;
+  closeDevPicker();
+  renderDet(recs.find(r=>r.id===curId));
+}
 
 function openUpload(){
   const rec = recs.find(r=>r.id===curId);
