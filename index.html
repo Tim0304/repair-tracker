@@ -319,13 +319,13 @@ async function saveRow(rec){
 
 const DONE_STATUSES = ['已完成','取消申請','暫不處理'];
 
-function isWithin3Months(dateStr){
+function isWithin6Months(dateStr){
   if(!dateStr) return true; // 沒有日期的不過濾掉
   const d = new Date(dateStr);
   if(isNaN(d)) return true;
   const now = new Date();
   // 取得3個月前的第一天
-  const cutoff = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+  const cutoff = new Date(now.getFullYear(), now.getMonth() - 5, 1);
   return d >= cutoff;
 }
 
@@ -341,7 +341,7 @@ function parseRows(rows){
     // 篩掉已結案狀態
     if(DONE_STATUSES.includes(status)) continue;
     // 篩掉3個月以前的資料
-    if(!isWithin3Months(applyTime)) continue;
+    if(!isWithin6Months(applyTime)) continue;
     recs.push({_row:i+1,id:'#'+String(i).padStart(3,'0'),
       status,shipNote:g(r,1),applyTime,
       storeName:g(r,5),contactName:g(r,6),contactPhone:g(r,7),contactAddr:g(r,8),storeNote:g(r,11),
