@@ -198,18 +198,21 @@ button{cursor:pointer;border:none;border-radius:7px;font-size:13px;padding:6px 1
 
 <!-- Device picker overlay -->
 <div class="ov" id="devPickerOv" style="display:none">
-  <div style="background:var(--color-background-primary);border-radius:12px;width:560px;max-width:92vw;overflow:hidden;max-height:90vh;display:flex;flex-direction:column">
-    <div style="padding:14px 18px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
-      <span style="font-size:14px;font-weight:600">選擇借出設備</span>
-      <span style="font-size:12px;color:#aaa">可複選</span>
+  <div style="background:#fff;border-radius:12px;width:560px;max-width:92vw;overflow:hidden;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 4px 24px rgba(0,0,0,.18)">
+    <div style="padding:14px 18px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:#fff">
+      <span style="font-size:14px;font-weight:600;color:#111">選擇借出設備</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:12px;color:#aaa">可複選</span>
+        <button onclick="closeDevPicker()" style="font-size:13px;padding:4px 12px;border:0.5px solid #ddd;border-radius:7px;background:#fff;color:#666;cursor:pointer">關閉</button>
+      </div>
     </div>
     <div style="display:flex;gap:14px;padding:7px 18px;border-bottom:1px solid #f0f0f0;background:#f8f8f8;flex-shrink:0">
       <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#666"><div style="width:8px;height:8px;border-radius:50%;background:#1a73e8"></div>可借出</div>
       <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#666"><div style="width:8px;height:8px;border-radius:50%;background:#e65100;opacity:.7"></div>借出中（不可選）</div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid #f0f0f0;flex-shrink:0" id="dpTabs"></div>
-    <div style="padding:12px 18px;overflow-y:auto;flex:1;min-height:200px;max-height:320px" id="dpBody"></div>
-    <div style="padding:11px 18px;border-top:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-shrink:0">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid #f0f0f0;flex-shrink:0;background:#fff" id="dpTabs"></div>
+    <div style="padding:12px 18px;overflow-y:auto;flex:1;min-height:200px;max-height:320px;background:#fff" id="dpBody"></div>
+    <div style="padding:11px 18px;border-top:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-shrink:0;background:#fff">
       <div style="font-size:12px;color:#888;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="dpSum">尚未選擇</div>
       <div style="display:flex;gap:8px">
         <button class="btn-c" onclick="dpClear()">清除</button>
